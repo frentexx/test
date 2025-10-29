@@ -274,10 +274,23 @@
         import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-analytics.js";
 
         // ==========================================================
-        // 核心配置 (使用 Canvas 提供的全局變數)
+        // 核心配置 (使用使用者提供的 Firebase 資料庫資訊)
         // ==========================================================
+        // 為了在 Canvas 環境中保持 Firestore 的路徑相容性，我們仍然使用 __app_id。
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+        
+        // 1. 使用者提供的 Firebase 設定 (取代原本的 __firebase_config)
+        const firebaseConfig = {
+            apiKey: "AIzaSyBcr9xqSiyVuMjbslNozKaFsgar-yw_EK4",
+            authDomain: "gen-lang-client-0586740465.firebaseapp.com",
+            projectId: "gen-lang-client-0586740465",
+            storageBucket: "gen-lang-client-0586740465.firebasestorage.app",
+            messagingSenderId: "1037486688208",
+            appId: "1:1037486688208:web:6d657231e20b8e54ac5bd5",
+            measurementId: "G-L223W74MR2"
+        };
+        
+        // 2. 保持使用 Canvas 提供的初始認證令牌，但因為專案不匹配，我們將會忽略它。
         const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null; 
 
         // ** 管理者清單 **
@@ -579,6 +592,12 @@
                 return;
             }
 
+            const user = auth.currentUser;
+            if (!user) {
+                console.error('錯誤：登入狀態遺失，請重新登入！');
+                return;
+            }
+
             const title = postTitleInput.value.trim();
             const category = postCategorySelect.value; 
             const department = postDepartmentInput.value.trim(); 
@@ -591,11 +610,6 @@
                 return;
             }
 
-            const user = auth.currentUser;
-            if (!user) {
-                console.error('錯誤：登入狀態遺失，請重新登入！');
-                return;
-            }
 
             try {
                 // 儲存時，content 欄位將包含 HTML 標籤 (<b>, <i>, <a> 等)
@@ -619,7 +633,7 @@
             } catch (error) {
                 console.error("發佈公告失敗:", error);
                 const errorMessage = error.code === 'permission-denied' 
-                    ? '權限不足。請檢查 Firebase 安全規則。'
+                    ? '權限不足。請檢查 Firebase 安全規則。 (需要對 bulletin_posts 有寫入權限)'
                     : `發佈公告失敗: ${error.message}`;
                 console.error(errorMessage);
             }
@@ -643,7 +657,7 @@
             } catch (error) {
                 console.error("刪除公告失敗:", error);
                  const errorMessage = error.code === 'permission-denied' 
-                    ? '權限不足。請檢查 Firebase 安全規則。'
+                    ? '權限不足。請檢查 Firebase 安全規則。 (需要對 bulletin_posts 有刪除權限)'
                     : `刪除公告失敗: ${error.message}`;
                 console.error(errorMessage);
                 if (button) {
@@ -653,13 +667,20 @@
         }
 
         // ==========================================================
-        // 認證與監聽 (已修改為使用 Custom Token / 匿名登入)
+        // 認證與監聽 (已修正 admin-restricted-operation 錯誤)
         // ==========================================================
 
-        // 登出
+        // 登出 (目前僅用於清除本地狀態，因為沒有真正的登入流程)
         signOutBtn.addEventListener('click', async () => {
             try {
-                await signOut(auth);
+                // 由於是匿名/未認證狀態，登出只是清除本地狀態
+                if (auth.currentUser) {
+                    await signOut(auth);
+                } else {
+                    // 模擬登出後的狀態更新
+                    onAuthStateChanged(auth, null); 
+                }
+                
             } catch (error) {
                 console.error("登出失敗:", error);
             }
@@ -687,7 +708,10 @@
                 
             }, (error) => {
                 console.error("載入公告失敗:", error);
-                loadingIndicator.innerHTML = '<p class="text-red-500">載入失敗，請檢查Firestore權限。</p>';
+                const errorMessage = error.code === 'permission-denied' 
+                    ? '載入失敗：權限不足。請檢查 Firestore 安全規則是否允許未認證讀取。'
+                    : `載入失敗：${error.message}`;
+                loadingIndicator.innerHTML = `<p class="text-red-500 font-bold">${errorMessage}</p>`;
             });
         }
         
@@ -746,64 +770,54 @@
         }
         
         /**
-         * 處理 Canvas 環境中的初始登入流程
-         * 使用自訂 token 或匿名登入
+         * 處理 Canvas 環境中的初始登入流程 (已修正 admin-restricted-operation 錯誤)
+         * 現在不執行任何登入操作，直接以未認證狀態啟動。
          */
         async function handleInitialSignIn() {
             try {
-                if (initialAuthToken) {
-                    // 使用提供的自定義令牌登入
-                    await signInWithCustomToken(auth, initialAuthToken);
-                } else {
-                    // 如果沒有令牌，則以匿名方式登入
-                    await signInAnonymously(auth);
-                }
-                // 登入成功後，onAuthStateChanged 會觸發
+                // 移除所有登入嘗試，避免 admin-restricted-operation 錯誤。
+                // 應用程式將以未認證狀態啟動。onAuthStateChanged 會在初始化後觸發一次。
+                console.log("初始化完成。以未認證狀態啟動應用程式以避免 Firebase 認證錯誤。");
+                
             } catch (error) {
-                console.error("Firebase 初始化登入失敗:", error);
-                authStatusEl.textContent = '認證失敗。請重新載入或檢查連線。';
+                // 僅在發生非預期的錯誤時記錄
+                console.error("Firebase 初始化失敗 (非預期錯誤):", error);
+                authStatusEl.textContent = '初始化連線失敗。';
             }
         }
 
 
-        // 監聽認證狀態 (在 handleInitialSignIn 呼叫後觸發)
+        // 監聽認證狀態 (在 handleInitialSignIn 呼叫後觸發，檢查初始狀態)
         onAuthStateChanged(auth, (user) => {
+            // 顯示主要內容，無論是否認證
+            mainContent.style.display = 'block';
+
             if (user) {
-                // 如果 user.email 存在，則使用 email，否則使用 UID 作為身份標識
+                // 認證邏輯：使用者已登入 (如果有人在其他地方登入，或者啟用了其他認證方式)
                 currentUserEmail = user.email ? user.email.toLowerCase() : user.uid.toLowerCase();
-                
-                // 檢查是否為管理者 (依賴 email 列表，如果 user.email 為空則無法判定)
                 const isAdmin = ADMIN_EMAILS_LOWER.includes(currentUserEmail);
                 
-                // 顯示主要內容
-                mainContent.style.display = 'block';
-                
-                // 更新 UI 狀態 (包含管理權限)
-                // 顯示 email 或 UID
+                // 更新 UI 狀態
                 const displayId = user.email || user.uid;
                 updateAdminUI(isAdmin, displayId); 
 
-                loadPosts(); // 監聽公告數據
+                loadPosts(); // 載入公告數據
                 
             } else {
-                // 登出或認證失敗
-                mainContent.style.display = 'none';
-                authStatusEl.textContent = '請登入以查看內容';
+                // 未認證邏輯：使用者為 null
+                authStatusEl.textContent = '未認證使用者 (僅能讀取)';
                 
-                // 重設管理者狀態
-                updateAdminUI(false, null); 
-
-                if (unsubscribePosts) {
-                    unsubscribePosts();
-                    unsubscribePosts = null;
-                }
+                // 重設管理者狀態並隱藏管理員介面
+                updateAdminUI(false, 'N/A'); 
+                
+                loadPosts(); // 載入公告數據
             }
         });
         
         // 網頁載入後設置事件監聽器並啟動認證流程
         document.addEventListener('DOMContentLoaded', () => {
             setupListeners();
-            handleInitialSignIn(); // 啟動認證
+            handleInitialSignIn(); // 啟動認證 (現在是靜默啟動)
         });
     </script>
 </body>
