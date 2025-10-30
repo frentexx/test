@@ -3,15 +3,33 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>公佈欄 - 需登入</title>
-    <!-- 載入 Tailwind CSS 框架 -->
+    <title>公佈欄 - 進階版</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 定義客製化顏色，符合 UI Style Guide -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'primary': '#EF6C00', // Primary (Orange)
+                        'secondary': '#4CAF50', // Secondary (Green)
+                        'warning': '#FBC02D', // Warning (Amber/Yellow)
+                        'bg-light': '#FAFAF5', // Background (Off-White)
+                        'text-dark': '#333333', // Dark Text
+                        // 保留原本的藍色作為次要點綴
+                        'accent-blue': '#03A9F4', 
+                    }
+                }
+            }
+        }
+    </script>
     <style>
         /* 使用 Inter 字體 */
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #f7f9fb; /* 淺灰色背景 */
+            /* 使用 Style Guide 定義的背景色 */
+            background-color: #FAFAF5; 
         }
         /* 讓初始狀態的內容隱藏，等待 Firebase 檢查狀態 */
         #login-screen, #main-content {
@@ -21,19 +39,49 @@
             transition: all 0.3s ease;
         }
         .login-btn:hover {
-            box-shadow: 0 4px 15px rgba(66, 153, 225, 0.5);
+            /* 使用 Primary 顏色的陰影效果 */
+            box-shadow: 0 4px 15px rgba(239, 108, 0, 0.5); 
             transform: translateY(-2px);
+        }
+        .error-message {
+            color: #d93025;
+            background-color: #fce8e6;
+            border-left: 5px solid #d93025;
+            padding: 1rem;
+            margin-top: 1.5rem;
+            border-radius: 0.5rem;
+            text-align: left;
+            font-size: 0.9rem;
+        }
+        .post-tag {
+            display: inline-block;
+            padding: 0.25rem 0.6rem;
+            border-radius: 9999px; /* fully rounded */
+            font-size: 0.75rem; /* text-xs */
+            font-weight: 600; /* font-semibold */
+            margin-right: 0.5rem; /* mr-2 */
+        }
+        /* 更新標籤顏色以符合風格指南的色系 */
+        .category-tag {
+            background-color: #FBC02D20; /* 警告色的輕微透明度 */
+            color: #EF6C00; /* Primary 顏色文字 */
+        }
+        .department-tag {
+            background-color: #4CAF5020; /* Secondary 顏色的輕微透明度 */
+            color: #4CAF50; /* Secondary 顏色文字 */
         }
     </style>
 </head>
-<body class="min-h-screen flex flex-col items-center">
+<!-- 使用定義的背景色 -->
+<body class="min-h-screen flex flex-col items-center bg-bg-light text-text-dark">
 
     <!-- 主要容器，限制最大寬度並居中 -->
-    <div class="w-full max-w-4xl mx-auto p-4 sm:p-6 lg:p-8">
+    <div class="w-full max-w-5xl mx-auto p-4 sm:p-6 lg:p-8">
 
-        <!-- 網頁標題區塊 (始終可見) -->
+        <!-- 網頁標題區塊 -->
         <header class="text-center py-10 mb-8 bg-white rounded-xl shadow-lg">
-            <h1 class="text-5xl font-extrabold text-blue-700 tracking-tight sm:text-6xl">
+            <!-- 使用 Primary 顏色作為標題強調色 -->
+            <h1 class="text-5xl font-extrabold text-primary tracking-tight sm:text-6xl">
                 公佈欄
             </h1>
             <p id="auth-status" class="mt-3 text-lg text-gray-500 font-medium">
@@ -42,73 +90,198 @@
         </header>
 
         <!-- 登入畫面 -->
-        <div id="login-screen" class="flex flex-col items-center justify-center p-10 bg-white rounded-xl shadow-lg border-t-4 border-red-500">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 text-red-500 mb-4" viewBox="0 0 20 20" fill="currentColor">
+        <!-- 使用 Primary 顏色作為邊界強調色 -->
+        <div id="login-screen" class="flex flex-col items-center justify-center p-10 bg-white rounded-xl shadow-lg border-t-4 border-primary">
+            <!-- 登入 UI ... -->
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 text-primary mb-4" viewBox="0 0 20 20" fill="currentColor">
                 <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
             </svg>
-            <h2 class="text-3xl font-bold text-gray-800 mb-4">
+            <h2 class="text-3xl font-bold text-text-dark mb-4">
                 需要登入權限
             </h2>
             <p class="text-gray-600 mb-6 text-center max-w-md">
                 請使用您的 Google 帳號登入，以查看公佈欄上的最新消息。
             </p>
-            <button id="google-signin-btn" class="login-btn bg-blue-600 text-white font-bold py-3 px-6 rounded-full shadow-lg flex items-center space-x-2">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="20px" height="20px" class="fill-current text-white"><path fill="#fbc02d" d="M24 11.23c-5.74 0-10.42 4.67-10.42 10.42s4.68 10.42 10.42 10.42c2.9 0 5.56-1.19 7.46-3.1L37.83 37c-3.7 3.3-8.8 5.38-13.83 5.38C13.23 42.38 4 33.15 4 21.65S13.23 1 24 1c5.96 0 10.99 2.52 14.69 6.22l-3.32 3.32C32.74 8.7 28.52 6.75 24 6.75c-8.23 0-14.89 6.66-14.89 14.89S15.77 36.53 24 36.53c4.15 0 7.82-1.74 10.49-4.54L37.83 37c-3.7 3.3-8.8 5.38-13.83 5.38z"/><path fill="#e53935" d="M37.83 37l-3.32-3.32c2.67-2.8 4.34-6.49 4.34-10.42 0-3.36-1.21-6.44-3.23-8.86l3.32-3.32c2.83 3.34 4.5 7.6 4.5 12.18C42.38 28.2 40.5 32.5 37.83 37z"/><path fill="#4285f4" d="M42.38 21.65c0-1.28-.1-2.52-.29-3.7l-3.83-.01c.19 1.17.29 2.38.29 3.7 0 1.32-.1 2.53-.29 3.7l3.83-.01c.19-1.17.29-2.52.29-3.7z"/><path fill="#34a853" d="M37.83 37l-3.32-3.32c2.67-2.8 4.34-6.49 4.34-10.42 0-3.36-1.21-6.44-3.23-8.86l3.32-3.32c2.83 3.34 4.5 7.6 4.5 12.18C42.38 28.2 40.5 32.5 37.83 37z" opacity=".8"/></svg>
+            <!-- 使用 Primary 顏色作為按鈕顏色 -->
+            <button id="google-signin-btn" class="login-btn bg-primary text-white font-bold py-3 px-6 rounded-full shadow-lg flex items-center space-x-2">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="20px" height="20px" class="fill-current text-white"><path fill="#fbc02d" d="M24 11.23c-5.74 0-10.42 4.67-10.42 10.42s4.68 10.42 10.42 10.42c2.9 0 5.56-1.19 7.46-3.1L37.83 37c-3.7 3.3-8.8 5.38-13.83 5.38C13.23 42.38 4 33.15 4 21.65S13.23 1 24 1c5.96 0 10.99 2.52 14.69 6.22l-3.32 3.32C32.74 8.7 28.52 6.75 24 6.75c-8.23 0-14.89 6.66-14.89 14.89S15.77 33.15 24 33.15c4.15 0 7.82-1.74 10.49-4.54L37.83 37c-3.7 3.3-8.8 5.38-13.83 5.38z"/><path fill="#e53935" d="M37.83 37l-3.32-3.32c2.67-2.8 4.34-6.49 4.34-10.42 0-3.36-1.21-6.44-3.23-8.86l3.32-3.32c2.83 3.34 4.5 7.6 4.5 12.18C42.38 28.2 40.5 32.5 37.83 37z"/><path fill="#4285f4" d="M42.38 21.65c0-1.28-.1-2.52-.29-3.7l-3.83-.01c.19 1.17.29 2.38.29 3.7 0 1.32-.1 2.53-.29 3.7l3.83-.01c.19-1.17.29-2.52.29-3.7z"/><path fill="#34a853" d="M37.83 37l-3.32-3.32c2.67-2.8 4.34-6.49 4.34-10.42 0-3.36-1.21-6.44-3.23-8.86l3.32-3.32c2.83 3.34 4.5 7.6 4.5 12.18C42.38 28.2 40.5 32.5 37.83 37z" opacity=".8"/></svg>
                 <span>使用 Google 登入</span>
             </button>
+            <div id="file-protocol-warning" style="display:none;" class="error-message">
+                <h3 class="font-bold mb-1">錯誤: 登入功能無法運作</h3>
+                <p>您目前在 **file://** 協議下執行此網頁。Firebase Google 登入必須透過網路伺服器 (如 `http://localhost`) 才能運作。</p>
+                <p class="mt-2 font-semibold">請使用 Live Server 或其他工具以 `http://` 網址開啟此網頁。</p>
+            </div>
         </div>
 
         <!-- 公佈欄內容 (登入後顯示) -->
         <div id="main-content" class="space-y-6">
             
-            <!-- 登出按鈕 -->
-            <div class="flex justify-end p-2">
+            <!-- 登出按鈕和身份狀態 -->
+            <div class="flex justify-between items-center p-2">
+                <!-- 管理者狀態提示，使用 Secondary 顏色文字 -->
+                <p id="admin-status" class="text-sm font-bold text-secondary hidden">
+                    ✅ 管理者模式 (Email: <span id="user-email-display"></span>)
+                </p>
                 <button id="signout-btn" class="text-sm text-red-500 hover:text-red-700 font-medium py-1 px-3 rounded-full border border-red-300 hover:border-red-500 transition duration-150">
                     登出
                 </button>
             </div>
 
-            <!-- 主要內容區塊 -->
+            <!-- 管理者專屬：新增公告表單 (預設隱藏) -->
+            <!-- 使用 Warning 顏色作為邊界強調色 -->
+            <div id="admin-form-section" class="bg-white p-6 rounded-xl shadow-lg border-t-4 border-warning hidden mb-8">
+                <h2 class="text-2xl font-bold text-text-dark mb-4">發佈新公告</h2>
+                <form id="new-post-form" class="space-y-4">
+                    <!-- 標題 -->
+                    <div>
+                        <label for="post-title" class="block text-sm font-medium text-gray-700">標題</label>
+                        <!-- 更新焦點環顏色為 Primary -->
+                        <input type="text" id="post-title" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary p-2 border" required>
+                    </div>
+                    <!-- 分類 (下拉選單 - 確保是 <select> 且選項會被 JS 填充) -->
+                    <div>
+                        <label for="post-category" class="block text-sm font-medium text-gray-700">公告分類</label>
+                        <!-- 更新焦點環顏色為 Primary -->
+                        <select id="post-category" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary p-2 border" required>
+                            <option value="">請選擇分類</option>
+                            <!-- 選項將由 JS 動態生成 (在 initializeFilters 中) -->
+                        </select>
+                    </div>
+                    <!-- 單位 (保留發佈單位欄位，輸入框) -->
+                    <div>
+                        <label for="post-department" class="block text-sm font-medium text-gray-700">發佈單位</label>
+                        <!-- 更新焦點環顏色為 Primary -->
+                        <input type="text" id="post-department" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary p-2 border" placeholder="如: 教務處、學務處" required>
+                    </div>
+                    <!-- 內容 -->
+                    <div>
+                        <label for="post-content" class="block text-sm font-medium text-gray-700">內容</label>
+                        <!-- 更新焦點環顏色為 Primary -->
+                        <textarea id="post-content" rows="4" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary p-2 border" required></textarea>
+                    </div>
+                    <!-- 使用 Secondary 顏色作為發佈按鈕顏色 -->
+                    <button type="submit" class="bg-secondary text-white font-bold py-2 px-4 rounded-full shadow-md hover:bg-secondary/90 transition duration-150 w-full">
+                        發佈公告
+                    </button>
+                </form>
+            </div>
+            
+            <!-- 篩選、搜尋和分頁控制區 -->
+            <div class="bg-white p-4 rounded-xl shadow-md mb-6">
+                <div class="flex flex-col sm:flex-row gap-4 items-center">
+                    
+                    <!-- 搜尋框 (佔寬度 60%) -->
+                    <div class="w-full sm:w-3/5">
+                        <label for="search-input" class="sr-only">搜尋公告</label>
+                        <div class="relative">
+                            <!-- 更新焦點環顏色為 Primary -->
+                            <input type="text" id="search-input" placeholder="輸入標題或內容關鍵字..." class="w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary pl-10 pr-4 py-2 border">
+                            <svg class="h-5 w-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" />
+                            </svg>
+                        </div>
+                    </div>
+
+                    <!-- 分類篩選 (佔寬度 40%) -->
+                    <div class="w-full sm:w-2/5">
+                        <label for="filter-category" class="sr-only">篩選分類</label>
+                        <!-- 更新焦點環顏色為 Primary -->
+                        <select id="filter-category" class="w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary p-2 border">
+                            <option value="">所有分類</option>
+                            <!-- 選項將由 JS 動態生成 -->
+                        </select>
+                    </div>
+                    
+                </div>
+            </div>
+
+            <!-- 公告列表 -->
             <main class="space-y-6">
                 <!-- 載入中的提示 -->
                 <div id="loading-indicator" class="text-center text-gray-500 p-8">
                     <p>正在從資料庫載入公告...</p>
                 </div>
+                <!-- 顯示篩選結果數量 -->
+                <div id="result-count" class="text-sm text-gray-600 font-medium ml-2">
+                    <!-- 將顯示 "顯示 X 筆結果" -->
+                </div>
+                
                 <!-- 公告將會在這裡動態載入 -->
                 <div id="posts-container" class="space-y-6">
-                    <!-- 靜態內容已移除，公告會即時顯示在這裡 -->
+                </div>
+                
+                <!-- 分頁控制區 -->
+                <div id="pagination-controls" class="flex justify-center items-center space-x-4 mt-6">
+                    <!-- 使用 Primary 顏色 -->
+                    <button id="prev-page" class="px-4 py-2 text-primary border border-primary rounded-lg hover:bg-primary/5 disabled:opacity-50 disabled:cursor-not-allowed transition duration-150">
+                        上一頁
+                    </button>
+                    <span id="page-info" class="text-gray-700 font-semibold">
+                        第 1 頁
+                    </span>
+                    <!-- 使用 Primary 顏色 -->
+                    <button id="next-page" class="px-4 py-2 text-primary border border-primary rounded-lg hover:bg-primary/5 disabled:opacity-50 disabled:cursor-not-allowed transition duration-150">
+                        下一頁
+                    </button>
                 </div>
             </main>
 
-            <!-- 頁腳 (可選) -->
+            <!-- 頁腳 -->
             <footer class="text-center mt-12 py-4 text-sm text-gray-400">
                 &copy; 2025 公佈欄。所有版權所有。
             </footer>
         </div>
-
     </div>
 
     <!-- Firebase SDK 引入和主邏輯 -->
     <script type="module">
-        // 引入 Firebase 必要的模組 (新增 collection, onSnapshot, query)
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, setLogLevel, collection, onSnapshot, query } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        // 統一使用12.4.0版本
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
+        import { getAuth, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signOut } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js";
+        // 導入 Firestore 的 where 和 orderBy 
+        import { getFirestore, collection, onSnapshot, query, addDoc, deleteDoc, doc, Timestamp, orderBy } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-firestore.js";
+        import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-analytics.js";
 
-        // 設定 Firestore 紀錄等級 (Debug 模式)
-        setLogLevel('Debug');
-
-        // 從環境變數獲取 Firebase 配置
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
-        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-
-        // 應用程式初始化
+        // ==========================================================
+        // 核心配置
+        // ==========================================================
+        const firebaseConfig = {
+            apiKey: "AIzaSyBcr9xqSiyVuMjbslNozKaFsgar-yw_EK4",
+            authDomain: "gen-lang-client-0586740465.firebaseapp.com",
+            projectId: "gen-lang-client-0586740465",
+            storageBucket: "gen-lang-client-0586740465.firebasestorage.app",
+            messagingSenderId: "1037486688208",
+            appId: "1:1037486688208:web:6d657231e20b8e54ac5bd5",
+            measurementId: "G-L223W74MR2"
+        };
+        
+        // ** 管理者清單 **
+        const ADMIN_EMAILS = [
+            "fuwen@ppsh.ptc.edu.tw", 
+        ];
+        // 為了比對方便，將管理者清單轉換為小寫
+        const ADMIN_EMAILS_LOWER = ADMIN_EMAILS.map(e => e.toLowerCase());
+        
+        // 初始化Firebase
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
+        const analytics = getAnalytics(app); 
+        
+        // Firestore 路徑
+        const postsCollectionPath = 'bulletin_posts'; 
 
+        // ==========================================================
+        // 預設選項/常數
+        // ==========================================================
+        // 定義所有的公告分類，用於下拉選單
+        const CATEGORIES = ["最新消息", "宿舍資訊", "活動競賽", "行政公告", "課程相關", "其他"];
+        const POSTS_PER_PAGE = 10; // 每頁顯示 10 筆公告
+
+        // ==========================================================
         // UI 元素
+        // ==========================================================
         const authStatusEl = document.getElementById('auth-status');
         const loginScreen = document.getElementById('login-screen');
         const mainContent = document.getElementById('main-content');
@@ -116,32 +289,69 @@
         const signOutBtn = document.getElementById('signout-btn');
         const postsContainer = document.getElementById('posts-container');
         const loadingIndicator = document.getElementById('loading-indicator');
+        const fileWarning = document.getElementById('file-protocol-warning');
+        const adminStatusEl = document.getElementById('admin-status'); 
+        const userEmailDisplay = document.getElementById('user-email-display'); 
+        const adminFormSection = document.getElementById('admin-form-section'); 
+        const newPostForm = document.getElementById('new-post-form');
+        const postTitleInput = document.getElementById('post-title');
+        const postCategorySelect = document.getElementById('post-category'); // 新增公告的分類選單
+        const postDepartmentInput = document.getElementById('post-department'); 
+        const postContentInput = document.getElementById('post-content');
         
-        // Firestore Configuration: 使用公共資料路徑，所有登入者都可讀取
-        // 路徑: /artifacts/{appId}/public/data/bulletin_posts
-        const postsCollectionPath = `artifacts/${appId}/public/data/bulletin_posts`;
+        const searchInput = document.getElementById('search-input'); // 搜尋框
+        const filterCategorySelect = document.getElementById('filter-category'); // 篩選分類
         
-        let unsubscribePosts = null; // 用來儲存取消訂閱的函數
+        const resultCountEl = document.getElementById('result-count'); // 結果計數
+        
+        const prevPageBtn = document.getElementById('prev-page'); // 上一頁按鈕
+        const nextPageBtn = document.getElementById('next-page'); // 下一頁按鈕
+        const pageInfoEl = document.getElementById('page-info'); // 頁碼資訊
 
-        // 1. 處理初始認證（使用自定義 token 或匿名登入）
-        async function handleInitialAuth() {
-            try {
-                if (initialAuthToken) {
-                    await signInWithCustomToken(auth, initialAuthToken);
-                } else {
-                    // 如果沒有提供 token，則匿名登入
-                    await signInAnonymously(auth);
-                }
-            } catch (error) {
-                console.error("初始認證失敗:", error);
+        // ==========================================================
+        // 狀態與輔助函數
+        // ==========================================================
+        let unsubscribePosts = null;
+        let isUserAdmin = false; 
+        let currentUserEmail = null; 
+        let allPosts = []; // 儲存從 Firestore 獲取的所有公告
+        let filteredPosts = []; // 儲存經過篩選/搜尋後的公告
+        let currentPage = 1; // 當前頁碼
+        let totalPages = 1; // 總頁數
+
+        // 初始化篩選器的選項 (同時也初始化了新增公告表單的分類選項)
+        function initializeFilters() {
+            // 1. 清空篩選器選項並設置預設選項
+            filterCategorySelect.innerHTML = '<option value="">所有分類</option>';
+            
+            // 2. 設置管理者表單的分類選項 (只在第一次載入時或未初始化時進行)
+            // 先清空，再重新填入
+            postCategorySelect.innerHTML = '<option value="">請選擇分類</option>';
+
+            CATEGORIES.forEach(category => {
+                // 給新增公告表單
+                const postOption = document.createElement('option');
+                postOption.value = category;
+                postOption.textContent = category;
+                postCategorySelect.appendChild(postOption);
+                
+                // 給篩選器
+                const filterOption = document.createElement('option');
+                filterOption.value = category;
+                filterOption.textContent = category;
+                filterCategorySelect.appendChild(filterOption);
+            });
+            
+            // 重新應用當前的篩選值，避免選項被重置後篩選狀態丟失
+            if (filterCategorySelect.dataset.currentValue) {
+                filterCategorySelect.value = filterCategorySelect.dataset.currentValue;
             }
         }
         
-        // 輔助函數：格式化日期
+        // 格式化日期
         function formatDate(timestamp) {
             if (!timestamp) return '未知日期';
-            // 處理 Firestore Timestamp 物件
-            const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+            const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp.seconds * 1000);
             return date.toLocaleDateString('zh-TW', {
                 year: 'numeric',
                 month: 'long',
@@ -150,113 +360,361 @@
                 minute: '2-digit'
             });
         }
+        
+        // 顯示/隱藏管理者 UI
+        function updateAdminUI(isAdmin, email) {
+            isUserAdmin = isAdmin;
+            userEmailDisplay.textContent = email || ''; 
+            
+            if (isAdmin) {
+                adminStatusEl.style.display = 'block';
+                adminFormSection.style.display = 'block';
+                authStatusEl.textContent = `歡迎，${auth.currentUser.displayName || auth.currentUser.email}！ (管理者)`;
+                // 確保管理者表單的分類下拉選單已經被初始化
+                initializeFilters(); 
+            } else {
+                adminStatusEl.style.display = 'none';
+                adminFormSection.style.display = 'none';
+                if (auth.currentUser) {
+                     authStatusEl.textContent = `歡迎，${auth.currentUser.displayName || auth.currentUser.email}！ (一般使用者)`;
+                }
+            }
+            // 重新應用篩選和渲染 (確保刪除按鈕狀態正確)
+            applyFiltersAndRender();
+        }
 
-        // 輔助函數：渲染公告列表
-        function renderPosts(posts) {
+        // ==========================================================
+        // 篩選、搜尋與分頁核心邏輯
+        // ==========================================================
+
+        // 應用篩選和搜尋
+        function applyFilters() {
+            const searchText = searchInput.value.toLowerCase().trim();
+            const selectedCategory = filterCategorySelect.value;
+            
+            // 儲存當前的篩選值，以便重新初始化選單後還能恢復
+            filterCategorySelect.dataset.currentValue = selectedCategory;
+
+            filteredPosts = allPosts.filter(post => {
+                // 1. 關鍵字搜尋 (標題或內容)
+                const matchesSearch = !searchText || 
+                                      (post.title && post.title.toLowerCase().includes(searchText)) ||
+                                      (post.content && post.content.toLowerCase().includes(searchText));
+                
+                // 2. 分類篩選
+                const matchesCategory = !selectedCategory || post.category === selectedCategory;
+                
+                return matchesSearch && matchesCategory;
+            });
+            
+            // 重設分頁
+            currentPage = 1;
+            totalPages = Math.ceil(filteredPosts.length / POSTS_PER_PAGE);
+            if (totalPages === 0) totalPages = 1;
+            
+            // 更新結果計數
+            resultCountEl.textContent = `顯示 ${filteredPosts.length} 筆結果`;
+            
+            // 重新渲染當前頁面
+            renderCurrentPage();
+        }
+        
+        // 渲染當前頁面
+        function renderCurrentPage() {
             loadingIndicator.style.display = 'none';
-            postsContainer.innerHTML = ''; // 清空現有內容
+            postsContainer.innerHTML = '';
 
-            if (posts.length === 0) {
-                postsContainer.innerHTML = `
-                    <div class="bg-yellow-100 p-6 rounded-xl shadow-md border-t-4 border-yellow-500 text-center text-yellow-800">
-                        <p class="font-semibold mb-2">公佈欄目前沒有任何公告。</p>
-                        <p class="text-sm">請前往您的 Firestore 資料庫，在 **${postsCollectionPath}** 集合中新增文件。</p>
+            const startIndex = (currentPage - 1) * POSTS_PER_PAGE;
+            const endIndex = startIndex + POSTS_PER_PAGE;
+            const postsToDisplay = filteredPosts.slice(startIndex, endIndex);
+
+            if (postsToDisplay.length === 0) {
+                 postsContainer.innerHTML = `
+                    <div class="bg-warning/10 p-6 rounded-xl shadow-md border-t-4 border-warning text-center text-warning">
+                        <p class="font-semibold mb-2">在當前篩選條件下，沒有找到任何公告。</p>
+                        <p class="text-sm">請嘗試修改篩選條件或搜尋關鍵字。</p>
                     </div>
                 `;
+            } else {
+                postsToDisplay.forEach(post => {
+                    const postElement = document.createElement('div');
+                    // 使用 Primary 顏色作為卡片邊界強調色
+                    postElement.className = 'bg-white p-6 rounded-xl shadow-md border-t-4 border-primary transition duration-300 hover:shadow-xl relative';
+                    
+                    // 管理者刪除按鈕
+                    let deleteButtonHTML = '';
+                    if (isUserAdmin && post.id) {
+                        deleteButtonHTML = `
+                            <button data-post-id="${post.id}" title="刪除公告" class="delete-btn absolute top-3 right-3 text-red-400 hover:text-red-600 transition duration-150 p-1 rounded-full bg-red-50/50 hover:bg-red-100">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 10-2 0v6a1 1 0 102 0V8z" clip-rule="evenodd" />
+                                </svg>
+                            </button>
+                        `;
+                    }
+
+                    // 標籤顯示 (顏色已在 <style> 中定義)
+                    const categoryTag = post.category ? `<span class="post-tag category-tag">${post.category}</span>` : '';
+                    const departmentTag = post.department ? `<span class="post-tag department-tag">${post.department}</span>` : ''; // 保留發佈單位的顯示
+
+                    postElement.innerHTML = `
+                        ${deleteButtonHTML}
+                        <div class="flex items-center mb-3">
+                            ${categoryTag}
+                            ${departmentTag} 
+                            <div class="text-sm text-gray-500 ml-auto">${formatDate(post.timestamp)}</div>
+                        </div>
+                        <h2 class="text-2xl font-semibold text-text-dark mb-2">${post.title || '[無標題]'}</h2>
+                        <p class="text-gray-600 mb-4 whitespace-pre-wrap">${post.content || '無內容'}</p>
+                        <div class="text-xs text-gray-400 mt-2 border-t pt-2 border-gray-100">
+                            張貼者: ${post.author || '管理員'}
+                        </div>
+                    `;
+                    postsContainer.appendChild(postElement);
+                });
+                
+                // 為新渲染的刪除按鈕添加事件監聽器
+                postsContainer.querySelectorAll('.delete-btn').forEach(button => {
+                    button.addEventListener('click', () => {
+                        const postId = button.dataset.postId;
+                        deletePost(postId);
+                    });
+                });
+            }
+            
+            // 更新分頁控制介面
+            updatePaginationControls();
+        }
+        
+        // 更新分頁控制介面狀態
+        function updatePaginationControls() {
+            pageInfoEl.textContent = `第 ${currentPage} / ${totalPages} 頁`;
+            
+            // 啟用/禁用按鈕
+            prevPageBtn.disabled = currentPage === 1;
+            nextPageBtn.disabled = currentPage === totalPages || filteredPosts.length === 0;
+            
+            // 如果沒有結果，隱藏分頁控制
+            if (filteredPosts.length === 0) {
+                 document.getElementById('pagination-controls').style.display = 'none';
+            } else {
+                 document.getElementById('pagination-controls').style.display = 'flex';
+            }
+        }
+        
+        // 整合篩選和渲染 (主調用函數)
+        function applyFiltersAndRender() {
+            applyFilters();
+            renderCurrentPage();
+        }
+
+        // ==========================================================
+        // CRUD 功能實作
+        // ==========================================================
+
+        // 新增公告
+        async function addNewPost(e) {
+            e.preventDefault();
+            
+            if (!isUserAdmin) {
+                // 替換 alert
+                console.error('權限不足：您沒有權限發佈公告！');
                 return;
             }
 
-            // 根據 timestamp 欄位手動排序，確保最新公告在最上方
-            // 注意：由於 Firestore 安全規則限制，我們通常避免在 onSnapshot 中使用 orderBy()
-            posts.sort((a, b) => {
-                const timeA = a.timestamp?.toMillis ? a.timestamp.toMillis() : 0;
-                const timeB = b.timestamp?.toMillis ? b.timestamp.toMillis() : 0;
-                return timeB - timeA; // 降序 (最新的在前面)
-            }).forEach(post => {
-                const postElement = document.createElement('div');
-                postElement.className = 'bg-white p-6 rounded-xl shadow-md border-t-4 border-blue-500 transition duration-300 hover:shadow-xl';
-                // 使用 whitespace-pre-wrap 來保留內容中的換行
-                postElement.innerHTML = `
-                    <h2 class="text-2xl font-semibold text-gray-800 mb-2">
-                        ${post.title || '[無標題公告]'}
-                    </h2>
-                    <p class="text-gray-600 mb-4 whitespace-pre-wrap">
-                        ${post.content || '無內容'}
-                    </p>
-                    <div class="text-sm text-gray-400 mt-2 border-t pt-2 border-gray-100">
-                        張貼者: ${post.author || '匿名管理者'}
-                    </div>
-                    <div class="text-sm text-gray-400">
-                        張貼日期: ${formatDate(post.timestamp)}
-                    </div>
-                `;
-                postsContainer.appendChild(postElement);
-            });
+            const title = postTitleInput.value.trim();
+            // 從下拉選單取得值
+            const category = postCategorySelect.value; 
+            const department = postDepartmentInput.value.trim(); 
+            const content = postContentInput.value.trim();
+            
+            // 檢查分類是否被選定
+            if (!title || !content || !category || !department) {
+                // 替換 alert
+                console.error('錯誤：標題、內容、公告分類和發佈單位都不能為空！');
+                return;
+            }
+
+            const user = auth.currentUser;
+            if (!user) {
+                // 替換 alert
+                console.error('錯誤：登入狀態遺失，請重新登入！');
+                return;
+            }
+
+            try {
+                await addDoc(collection(db, postsCollectionPath), {
+                    title: title,
+                    content: content,
+                    category: category, 
+                    department: department, 
+                    author: user.displayName || user.email,
+                    authorEmail: user.email,
+                    timestamp: Timestamp.now() 
+                });
+                
+                // 清空表單
+                postTitleInput.value = '';
+                postCategorySelect.value = ''; // 重設為 "請選擇分類"
+                postDepartmentInput.value = '';
+                postContentInput.value = '';
+                
+            } catch (error) {
+                console.error("發佈公告失敗:", error);
+                const errorMessage = error.code === 'permission-denied' 
+                    ? '權限不足。請檢查 Firebase 安全規則。'
+                    : `發佈公告失敗: ${error.message}`;
+                // 替換 alert
+                console.error(errorMessage);
+            }
         }
-        
-        // 2. 實作 Google 登入功能 (不變)
+
+        // 刪除公告
+        async function deletePost(postId) {
+            if (!isUserAdmin) {
+                // 替換 alert
+                console.error('權限不足：您沒有權限刪除公告！');
+                return;
+            }
+            
+            // **重要：移除 window.confirm()，因為它在 iFrame 中無法使用。**
+            // 實際應用中，應替換為客製化的 UI 模態框進行確認，以避免誤刪。
+            
+            // 增加刪除中的視覺回饋
+            const button = document.querySelector(`.delete-btn[data-post-id="${postId}"]`);
+            if (button) {
+                button.disabled = true;
+                // 顯示旋轉圖示
+                button.innerHTML = '<svg class="animate-spin h-5 w-5 text-red-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>';
+            }
+
+
+            try {
+                await deleteDoc(doc(db, postsCollectionPath, postId));
+                // 成功後 onSnapshot 會自動刷新 UI，無需額外處理
+            } catch (error) {
+                console.error("刪除公告失敗:", error);
+                 const errorMessage = error.code === 'permission-denied' 
+                    ? '權限不足。請檢查 Firebase 安全規則。'
+                    : `刪除公告失敗: ${error.message}`;
+                // 替換 alert
+                console.error(errorMessage);
+                // 失敗時恢復按鈕狀態
+                if (button) {
+                    button.disabled = false;
+                    // 恢復原始圖示 (略過，因為 onSnapshot 會很快更新 UI)
+                }
+            }
+        }
+
+        // ==========================================================
+        // 認證與監聽
+        // ==========================================================
+
+        // Google登入
         const provider = new GoogleAuthProvider();
         signInBtn.addEventListener('click', async () => {
+            if (window.location.protocol === 'file:') {
+                fileWarning.style.display = 'block';
+                return;
+            }
+
             try {
                 await signInWithPopup(auth, provider);
             } catch (error) {
-                console.error("Google 登入失敗:", error.message);
+                console.error("登入失敗:", error);
                 authStatusEl.textContent = `登入失敗: ${error.message}`;
             }
         });
 
-        // 3. 實作登出功能 (不變)
+        // 登出
         signOutBtn.addEventListener('click', async () => {
             try {
                 await signOut(auth);
             } catch (error) {
-                console.error("登出失敗:", error.message);
+                console.error("登出失敗:", error);
             }
         });
 
-        // 函數：從 Firestore 載入公告 (即時監聽)
+        // 加載公告 (使用 onSnapshot 監聽)
         function loadPosts() {
-            if (unsubscribePosts) {
-                unsubscribePosts(); // 如果已經在監聽，先取消
-            }
+            if (unsubscribePosts) unsubscribePosts();
             
-            loadingIndicator.style.display = 'block'; // 顯示載入中提示
+            loadingIndicator.style.display = 'block';
             postsContainer.innerHTML = '';
             
-            const postsQuery = query(collection(db, postsCollectionPath));
+            // 查詢: 依據時間戳降冪排序 (最新在前)
+            const postsQuery = query(collection(db, postsCollectionPath), orderBy("timestamp", "desc"));
 
-            // 設置 onSnapshot 監聽器，任何資料變動都會觸發
             unsubscribePosts = onSnapshot(postsQuery, (snapshot) => {
-                // 將文件轉換成物件陣列
-                const posts = snapshot.docs.map(doc => ({
-                    id: doc.id,
-                    ...doc.data()
-                }));
-                renderPosts(posts); // 渲染公告
+                // 將所有公告儲存到 allPosts 變數
+                allPosts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                
+                // 1. 初始化篩選器的選項 
+                initializeFilters();
+                
+                // 2. 應用篩選器並渲染
+                applyFiltersAndRender();
+                
             }, (error) => {
-                console.error("從 Firestore 載入公告失敗:", error);
-                loadingIndicator.innerHTML = '<p class="text-red-500">載入公告失敗，請檢查連線、Firebase 設定或權限規則。</p>';
+                console.error("載入公告失敗:", error);
+                loadingIndicator.innerHTML = '<p class="text-red-500">載入失敗，請檢查Firestore權限。</p>';
             });
         }
+        
+        // 綁定篩選和搜尋事件
+        function setupListeners() {
+            // 篩選/搜尋事件
+            searchInput.addEventListener('input', applyFiltersAndRender);
+            filterCategorySelect.addEventListener('change', applyFiltersAndRender);
 
+            // 分頁事件
+            prevPageBtn.addEventListener('click', () => {
+                if (currentPage > 1) {
+                    currentPage--;
+                    renderCurrentPage();
+                }
+            });
 
-        // 4. 監聽認證狀態變化，更新 UI 
+            nextPageBtn.addEventListener('click', () => {
+                if (currentPage < totalPages) {
+                    currentPage++;
+                    renderCurrentPage();
+                }
+            });
+            
+            // 綁定新增公告事件
+            newPostForm.addEventListener('submit', addNewPost);
+        }
+        
+        // 監聽認證狀態
         onAuthStateChanged(auth, (user) => {
-            if (user && user.isAnonymous === false) {
-                // 使用者已登入 (非匿名)
-                authStatusEl.textContent = `歡迎，${user.displayName || user.email || '使用者'}！`;
+            if (window.location.protocol === 'file:') {
+                authStatusEl.textContent = '錯誤：請使用網路伺服器運行';
+                return;
+            }
+            
+            if (user) {
+                currentUserEmail = user.email ? user.email.toLowerCase() : '';
+                const isAdmin = ADMIN_EMAILS_LOWER.includes(currentUserEmail);
+                
+                // 更新 UI 狀態 (包含管理權限)
+                updateAdminUI(isAdmin, user.email); 
+
+                // 已登入（顯示公佈欄）
                 loginScreen.style.display = 'none';
                 mainContent.style.display = 'block';
+                loadPosts(); // 監聽公告數據
                 
-                // 登入成功後開始載入公告
-                loadPosts(); 
             } else {
-                // 使用者已登出或只有匿名登入
+                // 未登入（顯示登入畫面）
                 authStatusEl.textContent = '請登入以查看內容';
                 mainContent.style.display = 'none';
-                loginScreen.style.display = 'flex'; // 顯示登入畫面
+                loginScreen.style.display = 'flex';
                 
-                // 登出時取消訂閱，停止監聽資料庫
+                // 重設管理者狀態
+                updateAdminUI(false, null); 
+
                 if (unsubscribePosts) {
                     unsubscribePosts();
                     unsubscribePosts = null;
@@ -264,8 +722,8 @@
             }
         });
         
-        // 執行初始認證
-        handleInitialAuth();
+        // 網頁載入後設置事件監聽器
+        document.addEventListener('DOMContentLoaded', setupListeners);
     </script>
 </body>
 </html>
