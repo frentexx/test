@@ -873,7 +873,7 @@
                         console.error('Unauthorized access attempt by:', user.email);
                         showLoginError(`您的帳號 (${user.email}) 未被授權存取。請使用指定的 5 個帳號之一登入。`);
                         await signOut(auth);
-                        return; // 登出後會再次觸發 onAuthStateChanged，進入 (user == null) 區塊
+                        return; // 登出後會再次觸發 onAuthStateChanged
                     }
                 }
             }
