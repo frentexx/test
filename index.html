@@ -244,7 +244,7 @@
         import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-analytics.js";
 
         // ==========================================================
-        // 核心配置
+        // 核心組態
         // ==========================================================
         const firebaseConfig = {
             apiKey: "AIzaSyBcr9xqSiyVuMjbslNozKaFsgar-yw_EK4",
@@ -256,17 +256,17 @@
             measurementId: "G-L223W74MR2"
         };
         
+        // ** 允許的電子郵件網域 **
+        const ALLOWED_DOMAIN = "ppsh.ptc.edu.tw";
+        
         // ** 管理者清單 **
         const ADMIN_EMAILS = [
             "fuwen@ppsh.ptc.edu.tw", 
         ];
         // 為了比對方便，將管理者清單轉換為小寫
         const ADMIN_EMAILS_LOWER = ADMIN_EMAILS.map(e => e.toLowerCase());
-		
-		 // ** 允許的電子郵件網域 **
-        const ALLOWED_DOMAIN = "ppsh.ptc.edu.tw";
-		
-		// 檢查電子郵件是否屬於允許的網域
+        
+        // 檢查電子郵件是否屬於允許的網域
         function isAllowedDomain(email) {
             if (!email) return false;
             const domain = email.split('@')[1];
@@ -352,7 +352,7 @@
                 filterCategorySelect.appendChild(filterOption);
             });
             
-            // 重新應用當前的篩選值，避免選項被重置後篩選狀態丟失
+            // 重新應用當前的篩選值，避免選項被重設後篩選狀態丟失
             if (filterCategorySelect.dataset.currentValue) {
                 filterCategorySelect.value = filterCategorySelect.dataset.currentValue;
             }
@@ -483,7 +483,7 @@
                     postsContainer.appendChild(postElement);
                 });
                 
-                // 為新渲染的刪除按鈕添加事件監聽器
+                // 為新渲染的刪除按鈕加入事件監聽器
                 postsContainer.querySelectorAll('.delete-btn').forEach(button => {
                     button.addEventListener('click', () => {
                         const postId = button.dataset.postId;
@@ -500,7 +500,7 @@
         function updatePaginationControls() {
             pageInfoEl.textContent = `第 ${currentPage} / ${totalPages} 頁`;
             
-            // 啟用/禁用按鈕
+            // 啟用/停用按鈕
             prevPageBtn.disabled = currentPage === 1;
             nextPageBtn.disabled = currentPage === totalPages || filteredPosts.length === 0;
             
@@ -623,6 +623,11 @@
 
         // Google登入
         const provider = new GoogleAuthProvider();
+        // 設定只允許特定網域登入（提示使用者使用特定網域）
+        provider.setCustomParameters({
+            hd: ALLOWED_DOMAIN // 提示使用者使用特定網域
+        });
+        
         signInBtn.addEventListener('click', async () => {
             if (window.location.protocol === 'file:') {
                 fileWarning.style.display = 'block';
@@ -630,10 +635,31 @@
             }
 
             try {
-                await signInWithPopup(auth, provider);
+                const result = await signInWithPopup(auth, provider);
+                const user = result.user;
+                
+                // 驗證電子郵件網域
+                if (!isAllowedDomain(user.email)) {
+                    // 不是允許的網域，立即登出
+                    await signOut(auth);
+                    authStatusEl.innerHTML = `
+                        <span style="color: #d93025; font-weight: 600;">
+                            ⚠️ 登入失敗：只有屏北高中帳號才能登入
+                        </span>
+                    `;
+                    
+                    // 5秒後恢復原始文字
+                    setTimeout(() => {
+                        authStatusEl.innerHTML = '<span style="color: #6b7280;">請使用您的 Google 帳號登入，以查看公佈欄上的最新消息。</span>';
+                    }, 5000);
+                    return;
+                }
+                
+                // 網域驗證通過，登入成功
+                
             } catch (error) {
                 console.error("登入失敗:", error);
-                authStatusEl.textContent = `登入失敗: ${error.message}`;
+                authStatusEl.innerHTML = `<span style="color: #d93025;">登入失敗: ${error.message}</span>`;
             }
         });
 
@@ -698,13 +724,32 @@
         }
         
         // 監聽認證狀態
-        onAuthStateChanged(auth, (user) => {
+        onAuthStateChanged(auth, async (user) => {
             if (window.location.protocol === 'file:') {
                 authStatusEl.textContent = '錯誤：請使用網路伺服器運行';
                 return;
             }
             
             if (user) {
+                // 二次驗證電子郵件網域（防止繞過）
+                if (!isAllowedDomain(user.email)) {
+                    console.warn('偵測到未授權的網域登入，正在登出...');
+                    await signOut(auth);
+                    authStatusEl.innerHTML = `
+                        <span style="color: #d93025; font-weight: 600;">
+                            ⚠️ 存取被拒：只有屏北高中帳號才能使用此系統
+                        </span>
+                    `;
+                    loginScreen.style.display = 'flex';
+                    mainContent.style.display = 'none';
+                    
+                    // 5秒後恢復原始文字
+                    setTimeout(() => {
+                        authStatusEl.innerHTML = '<span style="color: #6b7280;">請使用您的 Google 帳號登入，以查看公佈欄上的最新消息。</span>';
+                    }, 5000);
+                    return;
+                }
+                
                 currentUserEmail = user.email ? user.email.toLowerCase() : '';
                 const isAdmin = ADMIN_EMAILS_LOWER.includes(currentUserEmail);
                 
