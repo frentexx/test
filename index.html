@@ -262,6 +262,16 @@
         ];
         // 為了比對方便，將管理者清單轉換為小寫
         const ADMIN_EMAILS_LOWER = ADMIN_EMAILS.map(e => e.toLowerCase());
+		
+		 // ** 允許的電子郵件網域 **
+        const ALLOWED_DOMAIN = "ppsh.ptc.edu.tw";
+		
+		// 檢查電子郵件是否屬於允許的網域
+        function isAllowedDomain(email) {
+            if (!email) return false;
+            const domain = email.split('@')[1];
+            return domain && domain.toLowerCase() === ALLOWED_DOMAIN.toLowerCase();
+        }
         
         // 初始化Firebase
         const app = initializeApp(firebaseConfig);
