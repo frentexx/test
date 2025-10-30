@@ -269,7 +269,7 @@
             <main class="space-y-6">
                 <!-- 載入中的提示 -->
                 <div id="loading-indicator" class="text-center text-gray-500 p-8">
-                    <p>正在從資料庫載入公告...</p>
+                    <p id="loading-message">正在從資料庫載入公告...</p>
                 </div>
                 <!-- 顯示篩選結果數量 -->
                 <div id="result-count" class="text-sm text-gray-600 font-medium ml-2">
@@ -381,6 +381,7 @@
         const signOutBtn = document.getElementById('signout-btn');
         const postsContainer = document.getElementById('posts-container');
         const loadingIndicator = document.getElementById('loading-indicator');
+        const loadingMessageEl = document.getElementById('loading-message'); // 載入訊息元素
         const fileWarning = document.getElementById('file-protocol-warning');
         const adminStatusEl = document.getElementById('admin-status'); 
         const userEmailDisplay = document.getElementById('user-email-display'); 
@@ -789,7 +790,13 @@
                 
             }, (error) => {
                 console.error("載入公告失敗:", error);
-                loadingIndicator.innerHTML = '<p class="text-red-500">載入失敗，請檢查Firestore權限。</p>';
+                loadingMessageEl.innerHTML = `
+                    載入公告失敗：請檢查您的 Firestore 安全規則。
+                    <br>
+                    錯誤碼: ${error.code || '未知'}
+                `;
+                // 讓載入指示器顯示錯誤訊息
+                loadingIndicator.style.display = 'block'; 
             });
         }
         
